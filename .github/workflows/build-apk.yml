@@ -1,0 +1,53 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Unpack project
+        run: |
+          mkdir project
+          unzip -o *.zip -d project
+          SPEC=$(find project -name buildozer.spec | head -1)
+          if [ -z "$SPEC" ]; then
+            echo "buildozer.spec not found"
+            exit 1
+          fi
+          echo "SPEC=$SPEC"
+          echo "PROJECT_DIR=$(dirname "$SPEC")" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            git zip unzip openjdk-17-jdk \
+            python3-pip autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            libtinfo5 cmake libffi-dev libssl-dev
+
+      - name: Install Buildozer
+        run: |
+          python3 -m pip install --user --upgrade pip
+          python3 -m pip install --user buildozer cython
+
+      - name: Build APK
+        run: |
+          cd "$PROJECT_DIR"
+          ~/.local/bin/buildozer -v android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: personal-assistant-apk
+          path: |
+            ${{ env.PROJECT_DIR }}/bin/*.apk
