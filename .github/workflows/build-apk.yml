@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
@@ -17,37 +17,32 @@ jobs:
       - name: Unpack project
         run: |
           mkdir project
-          unzip -o *.zip -d project
+          unzip -o 'دستیار_شخصی_نسخه_به_روز.zip' -d project
           SPEC=$(find project -name buildozer.spec | head -1)
           if [ -z "$SPEC" ]; then
             echo "buildozer.spec not found"
             exit 1
           fi
-          echo "SPEC=$SPEC"
           echo "PROJECT_DIR=$(dirname "$SPEC")" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install -y \
-            git zip unzip openjdk-17-jdk \
-            python3-pip autoconf libtool pkg-config \
-            zlib1g-dev libncurses5-dev libncursesw5-dev \
-            libtinfo5 cmake libffi-dev libssl-dev
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev cmake libffi-dev libssl-dev
 
       - name: Install Buildozer
         run: |
-          python3 -m pip install --user --upgrade pip
-          python3 -m pip install --user buildozer cython
+          python3 -m venv ~/venv
+          ~/venv/bin/pip install --upgrade pip
+          ~/venv/bin/pip install buildozer cython
 
       - name: Build APK
         run: |
           cd "$PROJECT_DIR"
-          ~/.local/bin/buildozer -v android debug
+          ~/venv/bin/buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: personal-assistant-apk
-          path: |
-            ${{ env.PROJECT_DIR }}/bin/*.apk
+          path: ${{ env.PROJECT_DIR }}/bin/*.apk
